@@ -14,9 +14,12 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class StrengthBrew extends JavaPlugin {
 
-    private NamespacedKey mixKey;
+    private final List<NamespacedKey> mixKeys = new ArrayList<>();
 
     @Override
     public void onEnable() {
@@ -24,36 +27,39 @@ public class StrengthBrew extends JavaPlugin {
         int minutes = Math.max(1, getConfig().getInt("duration-minutes", 8));
         int ticks = minutes * 60 * 20;
 
-        // The potion you get out of the brewing stand:
-        // Strength II with a custom duration.
-        ItemStack result = new ItemStack(Material.POTION);
-        PotionMeta meta = (PotionMeta) result.getItemMeta();
-        meta.setColor(Color.fromRGB(0x932423)); // Strength red
-        meta.displayName(Component.text("Potion of Strength II (Extended)")
-                .decoration(TextDecoration.ITALIC, false));
-        meta.addCustomEffect(new PotionEffect(PotionEffectType.STRENGTH, ticks, 1), true);
-        result.setItemMeta(meta);
-
-        // Input: any normal Strength II potion (the 1:30 one made with glowstone)
-        RecipeChoice input = PotionMix.createPredicateChoice(item ->
-                item != null
-                        && item.getType() == Material.POTION
-                        && item.getItemMeta() instanceof PotionMeta pm
-                        && pm.getBasePotionType() == PotionType.STRONG_STRENGTH);
-
-        // Ingredient: redstone
-        RecipeChoice ingredient = new RecipeChoice.MaterialChoice(Material.REDSTONE);
-
-        mixKey = new NamespacedKey(this, "strength_two_extended");
-        getServer().getPotionBrewer().addPotionMix(new PotionMix(mixKey, result, input, ingredient));
+        register(Material.POTION, "Potion of Strength II (Extended)", "drink", ticks);
+        register(Material.SPLASH_POTION, "Splash Potion of Strength II (Extended)", "splash", ticks);
 
         getLogger().info("Strength II + Redstone now makes an " + minutes + " minute Strength II potion.");
     }
 
+    private void register(Material type, String name, String id, int ticks) {
+        // Result: same potion type, Strength II with a custom duration
+        ItemStack result = new ItemStack(type);
+        PotionMeta meta = (PotionMeta) result.getItemMeta();
+        meta.setColor(Color.fromRGB(0x932423));
+        meta.displayName(Component.text(name).decoration(TextDecoration.ITALIC, false));
+        meta.addCustomEffect(new PotionEffect(PotionEffectType.STRENGTH, ticks, 1), true);
+        result.setItemMeta(meta);
+
+        // Input: a normal Strength II potion of the same type
+        RecipeChoice input = PotionMix.createPredicateChoice(item ->
+                item != null
+                        && item.getType() == type
+                        && item.getItemMeta() instanceof PotionMeta pm
+                        && pm.getBasePotionType() == PotionType.STRONG_STRENGTH);
+
+        RecipeChoice ingredient = new RecipeChoice.MaterialChoice(Material.REDSTONE);
+
+        NamespacedKey key = new NamespacedKey(this, "strength_two_extended_" + id);
+        mixKeys.add(key);
+        getServer().getPotionBrewer().addPotionMix(new PotionMix(key, result, input, ingredient));
+    }
+
     @Override
     public void onDisable() {
-        if (mixKey != null) {
-            getServer().getPotionBrewer().removePotionMix(mixKey);
+        for (NamespacedKey key : mixKeys) {
+            getServer().getPotionBrewer().removePotionMix(key);
         }
     }
 }
