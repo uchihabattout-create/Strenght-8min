@@ -1,0 +1,5 @@
+name: StrengthBrew
+version: '${project.version}'
+main: me.strengthbrew.StrengthBrew
+api-version: '1.21'
+description: Brew Strength II + Redstone into an 8 minute Strength II potion
